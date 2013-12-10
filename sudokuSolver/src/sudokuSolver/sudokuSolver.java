@@ -45,6 +45,34 @@ public class sudokuSolver {
 		}
 	}
 	
+	static int betterNext() {
+		// A next function that returns the position with the least feasible values.
+		// We don't care about the current position, so we take no parameters.
+		int bestN = 10;
+		int bestPos = 0;
+		int num;
+		boolean done = true;
+		for (int i=0; i<9; i++) {
+			for (int j=0; j<9; j++) {
+				if (board[i][j] == 0) {
+					done = false;
+					num = numberFeasible(i, j);
+					if (num == 1) {
+						bestN = num;
+						bestPos = (i << 4)+j;
+						break;
+					}
+					else if (num < bestN && 0 != num) {
+						bestN = num;
+						bestPos = (i << 4)+j;
+					}
+				}
+			}
+		}
+		if (done) return success;  // No more open positions
+		return bestPos;
+	}
+	
 	static boolean feasible (int row, int col, int k) {
 		// check if k is feasible at position <row, col>	
 		for (int i = 0; i < 9; i++) {
@@ -56,8 +84,15 @@ public class sudokuSolver {
 		int col0 = (col/3)*3;
 		for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) 
 			if (board[i+row0][j+col0] == k) return false; // used in the same region
-		
 		return true;	
+	}
+	
+	static int numberFeasible(int row, int col) {
+		int count = 0;
+		for (int i=1; i<=9; i++) {
+			if (feasible(row, col, i)) count++;
+		}
+		return count;
 	}
 	
 	static int backtrack (int pos) {
@@ -69,10 +104,11 @@ public class sudokuSolver {
 		int col = pos&15;
 		int row = (pos >> 4)&15;
 		
+		// Tries all of the feasible values for the position.
 		for (int k = 1; k <= 9; k++) if (feasible(row, col, k)) {
 			board[row][col] = k;
 			// System.out.println("["+row+","+col+"]="+k);
-			if (backtrack(next(pos)) == success) return success;
+			if (backtrack(betterNext()) == success) return success;
 		}
 		
 		board[row][col] = empty;
@@ -107,13 +143,12 @@ public class sudokuSolver {
         }
         
 	// Solve the puzzle by backtrack search and display the solution if there is one.
-	if (backtrack(next(-1)) == success) {
+	if (backtrack(betterNext()) == success) {
 	    System.out.println("\nSolution:");
 	    displaySudoku();
 	} else {
 	    System.out.println("no solution");
 	}
       	System.out.println("recursive calls = "+calls);
-      	
     }
 }
