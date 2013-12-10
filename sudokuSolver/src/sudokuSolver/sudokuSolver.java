@@ -57,12 +57,12 @@ public class sudokuSolver {
 				if (board[i][j] == 0) {
 					done = false;
 					num = numberFeasible(i, j);
-					if (num == 1) {
+					if (num <= 1) {
 						bestN = num;
 						bestPos = (i << 4)+j;
 						break;
 					}
-					else if (num < bestN && 0 != num) {
+					else if (num < bestN) {
 						bestN = num;
 						bestPos = (i << 4)+j;
 					}
@@ -70,6 +70,7 @@ public class sudokuSolver {
 			}
 		}
 		if (done) return success;  // No more open positions
+		//System.out.println();
 		return bestPos;
 	}
 	
