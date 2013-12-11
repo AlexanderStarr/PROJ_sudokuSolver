@@ -7,6 +7,7 @@ public class sudokuSolver {
 	
 	private static int[][] board;
 	private static int[][] domainSize;
+	private static boolean[][][] domain;
 	static final int empty = 0;
 	static final int success = -100;
 	static final int fail = -1;
@@ -89,11 +90,41 @@ public class sudokuSolver {
 	}
 	
 	static int numberFeasible(int row, int col) {
+		// This function is made more efficient by storing each cell's domain
+		// in the domain array.  This results in less calls to feasible().
 		int count = 0;
-		for (int i=1; i<=9; i++) {
-			if (feasible(row, col, i)) count++;
+		for (int k=0; k<9; k++) {
+			if (domain[row][col][k]) count++;
 		}
 		return count;
+	}
+	
+	static void removeFromDomain(int row, int col, int k) {
+		// Removes k from the domain of all cells incident with the cell at row/col.
+		for(int i=0; i<9; i++) {
+			domain[i][col][k-1] = false;
+			domain[row][i][k-1] = false;
+		}
+		
+		int row0 = (row/3)*3;
+		int col0 = (col/3)*3;
+		for (int i=0; i<3; i++) for (int j=0; j<3; j++) {
+			domain[i+row0][j+col0][k-1] = false;
+		}
+	}
+	
+	static void updateDomains(int row, int col, int k) {
+		// Updates the domains of all cells incident with the given row and col for value k.
+		for(int i=0; i<9; i++) {
+			domain[i][col][k-1] = feasible(i, col, k);
+			domain[row][i][k-1] = feasible(row, i, k);
+		}
+		
+		int row0 = (row/3)*3;
+		int col0 = (col/3)*3;
+		for (int i=0; i<3; i++) for (int j=0; j<3; j++) {
+			domain[i+row0][j+col0][k-1] = feasible(i+row0, j+col0, k);
+		}
 	}
 	
 	static int backtrack (int pos) {
@@ -105,11 +136,18 @@ public class sudokuSolver {
 		int col = pos&15;
 		int row = (pos >> 4)&15;
 		
-		// Tries all of the feasible values for the position.
-		for (int k = 1; k <= 9; k++) if (feasible(row, col, k)) {
+		// Tries all of the values in the domain for the position.
+		for (int k = 1; k <= 9; k++) if (domain[row][col][k-1]) {
+			// Tries the value, and removes it from the domains of all incident cells.
 			board[row][col] = k;
+			removeFromDomain(row, col, k);
 			// System.out.println("["+row+","+col+"]="+k);
 			if (backtrack(betterNext()) == success) return success;
+			else {
+				// If this path fails, then reset the domains.
+				board[row][col] = 0;
+				updateDomains(row, col, k);
+			}
 		}
 		
 		board[row][col] = empty;
@@ -121,7 +159,7 @@ public class sudokuSolver {
     	
     	board = new int[9][9];
     	domainSize = new int[9][9];
-    	
+    	domain = new boolean[9][9][9];
 
 	// read in a puzzle
         try {
@@ -143,6 +181,12 @@ public class sudokuSolver {
             ex.printStackTrace();
         }
         
+        // Initialize the domain for each position
+        for(int i=0; i<9; i++) for (int j=0; j<9; j++) for (int k=0; k<9; k++) {
+        	if (feasible(i, j, k+1)) {
+        		domain[i][j][k] = true;
+        	} else domain[i][j][k] = false;
+        }
 	// Solve the puzzle by backtrack search and display the solution if there is one.
 	if (backtrack(betterNext()) == success) {
 	    System.out.println("\nSolution:");
